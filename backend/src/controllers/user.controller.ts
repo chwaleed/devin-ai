@@ -59,3 +59,8 @@ export const loginUserController = async (
     res.status(500).json({ error: "Internal server error", message: error });
   }
 };
+
+export const profileController = async (req: Request, res: Response) => {
+  console.log(req.user);
+  res.json({ user: req.user });
+};
