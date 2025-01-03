@@ -1,6 +1,7 @@
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { configDotenv } from "dotenv";
 import { NextFunction, Request, Response } from "express";
+import redisClient from "../services/redis.services";
 
 configDotenv();
 
@@ -19,6 +20,14 @@ export const authUser = async (
   try {
     console.log(req.cookies);
     const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+
+    const isLogout = await redisClient.get(token);
+
+    if (isLogout) {
+      res.cookie("token", "");
+      res.status(401).send({ error: "Unauthorized user" });
+      return;
+    }
 
     if (!token) {
       res.status(401).send({ error: "Unauthorized user" });

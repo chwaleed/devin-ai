@@ -2,6 +2,9 @@ import { createUser } from "../services/user.services";
 import { validationResult } from "express-validator";
 import { Request, Response } from "express";
 import User from "../models/user.model";
+import redisClient from "../services/redis.services";
+
+redisClient;
 
 export const createUserController = async (
   req: Request,
@@ -63,4 +66,14 @@ export const loginUserController = async (
 export const profileController = async (req: Request, res: Response) => {
   console.log(req.user);
   res.json({ user: req.user });
+};
+
+export const logoutController = async (req: Request, res: Response) => {
+  try {
+    const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+    redisClient.set(token, "logout", "EX", 60 * 60 * 24);
+    res.status(200).json({ message: "Logout successful" });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error", message: error });
+  }
 };
