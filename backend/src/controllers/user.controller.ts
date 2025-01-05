@@ -22,7 +22,12 @@ export const createUserController = async (
     const user = await createUser(email, password);
     const token = await user.generateToken();
 
-    res.status(201).json({ user, token });
+    res.cookie("token", token, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.status(201).json({ message: "User created successfuly" });
   } catch (error) {
     res.status(500).json({ error: "Internal server error", message: error });
   }
@@ -56,7 +61,12 @@ export const loginUserController = async (
 
     const token = await user.generateToken();
 
-    res.status(200).json({ user, token });
+    res.cookie("token", token, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({ message: "Login successfuly" });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Internal server error", message: error });
