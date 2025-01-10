@@ -18,7 +18,6 @@ export const authUser = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    console.log(req.cookies);
     const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
 
     const isLogout = await redisClient.get(token);

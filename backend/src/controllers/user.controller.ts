@@ -51,6 +51,7 @@ export const loginUserController = async (
       res.status(401).json({ error: "User not found" });
       return;
     }
+    const { _id } = user;
 
     const isValid = await user.isValidPassword(password);
 
@@ -66,7 +67,9 @@ export const loginUserController = async (
       maxAge: 24 * 60 * 60 * 1000,
     });
 
-    res.status(200).json({ message: "Login successfuly" });
+    res
+      .status(200)
+      .json({ message: "Login successfuly", data: { email: email, id: _id } });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Internal server error", message: error });

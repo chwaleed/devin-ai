@@ -1,11 +1,12 @@
-import React from "react";
+import React, { useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axiosInstance from "../auth/axios.cofig";
+import { context } from "../context/context";
 
 function Login() {
   const [loginData, setLoginData] = React.useState({ email: "", password: "" });
   const navigate = useNavigate();
-
+  const { dispatch } = useContext(context);
   async function submitHandler(event: React.FormEvent) {
     try {
       event.preventDefault();
@@ -13,6 +14,7 @@ function Login() {
         .post("/api/login", loginData)
         .then((res) => {
           if (res.status === 200) {
+            dispatch({ payload: { user: res.data.data } });
             navigate("/project");
           }
         })
@@ -27,6 +29,7 @@ function Login() {
       console.log(error);
     }
   }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
