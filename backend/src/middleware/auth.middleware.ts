@@ -8,7 +8,7 @@ configDotenv();
 declare global {
   namespace Express {
     interface Request {
-      user: string | JwtPayload; // Add the user property to the Request interface
+      user: any | JwtPayload; // Add the user property to the Request interface
     }
   }
 }

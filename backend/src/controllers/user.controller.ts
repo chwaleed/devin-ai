@@ -65,6 +65,8 @@ export const loginUserController = async (
     res.cookie("token", token, {
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
+      sameSite: "strict",
+      secure: false,
     });
 
     res
@@ -88,5 +90,24 @@ export const logoutController = async (req: Request, res: Response) => {
     res.status(200).json({ message: "Logout successful" });
   } catch (error) {
     res.status(500).json({ error: "Internal server error", message: error });
+  }
+};
+
+export const verifyUser = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.user;
+    if (!email) {
+      res.status(404).json({ message: "User not found" });
+    }
+    const response = await User.findOne({ email });
+    if (!response) {
+      res.status(404).json({ message: "User not found" });
+    }
+
+    res
+      .status(200)
+      .json({ data: { email: response?.email, id: response?._id } });
+  } catch (error) {
+    res.status(500).send("Internal Server Error");
   }
 };

@@ -29,6 +29,8 @@ router.get(
   userController.profileController
 );
 
+router.get("/verify-user", authMiddleware.authUser, userController.verifyUser);
+
 router.get("/logout", authMiddleware.authUser, userController.logoutController);
 
 export default router;
