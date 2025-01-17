@@ -1,13 +1,70 @@
-import { useState, useContext } from "react";
+import { useContext, useEffect, useState } from "react";
+import axiosInstance from "../auth/axios.cofig";
+import Model from "./components/Model";
+import Loader from "./components/Loader";
+import { useLocation } from "react-router-dom";
+import { context } from "../context/context";
 function Project() {
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [users, setUsers] = useState<Array<user | null>>([]);
+  const [addedCollabs, setAddedCollabs] = useState<Array<user | null>>([]);
+  const { methods, state } = useContext(context);
+  const location = useLocation();
+  const { project } = location.state;
 
+  console.log("here are the users", project);
+
+  type user = {
+    email: string;
+    _id: string;
+  };
+
+  useEffect(() => {
+    if (methods && methods.getProject) {
+      methods.getProject({ projectId: project?._id });
+    }
+  }, []);
+
+  const handleUserClick = (userId: string) => {
+    const existingUserIndex = addedCollabs.findIndex(
+      (collab) => collab?._id === userId
+    );
+    if (existingUserIndex !== -1) {
+      setAddedCollabs(addedCollabs.filter((collab) => collab?._id !== userId));
+      return;
+    }
+    const user = users.find((user) => user?._id === userId);
+    if (user && !addedCollabs.some((collab) => collab?._id === userId)) {
+      setAddedCollabs([...addedCollabs, user]);
+    }
+  };
+
+  const getAllUsers = async () => {
+    try {
+      axiosInstance
+        .get("/api/get-all-user")
+        .then((res) => setUsers(res?.data?.data));
+    } catch (error) {
+      console.log("Error in getting users ", error);
+    }
+  };
+
+  const getCallaborators = () => {
+    setIsModalOpen(true);
+    getAllUsers();
+  };
+
+  const close = () => {
+    setIsModalOpen(false);
+  };
+
+  const onClick = () => {};
   return (
     <main className="h-screen w-screen flex">
       <section className="left relative flex flex-col h-screen min-w-96 bg-slate-300">
         <header className="flex justify-between items-center p-2 px-4 w-full bg-slate-100 absolute z-10 top-0">
-          <button className="flex gap-2" onClick={() => setIsModalOpen(true)}>
+          <button className="flex gap-2" onClick={getCallaborators}>
             <i className="ri-add-fill mr-1"></i>
             <p>Add collaborator</p>
           </button>
@@ -72,9 +129,10 @@ function Project() {
               <i className="ri-close-fill"></i>
             </button>
           </header>
-          {/* <div className="users flex flex-col gap-2">
-            {project.users &&
-              project.users.map((user) => {
+          <div className="users flex flex-col gap-2">
+            {state?.activeProject &&
+              state?.activeProject?.users?.map((user) => {
+                console.log("user here users ", user);
                 return (
                   <div className="user cursor-pointer hover:bg-slate-200 p-2 flex gap-2 items-center">
                     <div className="aspect-square rounded-full w-fit h-fit flex items-center justify-center p-5 text-white bg-slate-600">
@@ -84,7 +142,7 @@ function Project() {
                   </div>
                 );
               })}
-          </div> */}
+          </div>
         </div>
       </section>
 
@@ -223,40 +281,32 @@ function Project() {
       </section> */}
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-4 rounded-md w-96 max-w-full relative">
-            <header className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Select User</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2">
-                <i className="ri-close-fill"></i>
-              </button>
-            </header>
-            {/* <div className="users-list flex flex-col gap-2 mb-16 max-h-96 overflow-auto">
-              {users.map((user) => (
+        <Model close={close} onClick={onClick}>
+          <div className="users-list flex flex-col gap-2 mb-16 max-h-96 overflow-auto">
+            {users.length > 0 ? (
+              users?.map((user) => (
                 <div
-                  key={user.id}
+                  key={user?._id}
                   className={`user cursor-pointer hover:bg-slate-200 ${
-                    Array.from(selectedUserId).indexOf(user._id) != -1
+                    addedCollabs.some((collab) => collab?._id === user?._id)
                       ? "bg-slate-200"
                       : ""
                   } p-2 flex gap-2 items-center`}
-                  onClick={() => handleUserClick(user._id)}
+                  onClick={() => handleUserClick(user?._id || "")}
                 >
                   <div className="aspect-square relative rounded-full w-fit h-fit flex items-center justify-center p-5 text-white bg-slate-600">
                     <i className="ri-user-fill absolute"></i>
                   </div>
-                  <h1 className="font-semibold text-lg">{user.email}</h1>
+                  <h1 className="font-semibold text-lg">{user?.email}</h1>
                 </div>
-              ))}
-            </div> */}
-            <button
-              // onClick={addCollaborators}
-              className="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-blue-600 text-white rounded-md"
-            >
-              Add Collaborators
-            </button>
+              ))
+            ) : (
+              <div className="flex items-center justify-center">
+                <Loader />
+              </div>
+            )}
           </div>
-        </div>
+        </Model>
       )}
     </main>
   );

@@ -2,13 +2,19 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import { configDotenv } from "dotenv";
 import { NextFunction, Request, Response } from "express";
 import redisClient from "../services/redis.services";
+import { ObjectId } from "mongodb";
 
 configDotenv();
+
+interface tokenUser extends JwtPayload {
+  email: string;
+  id: ObjectId;
+}
 
 declare global {
   namespace Express {
     interface Request {
-      user: any | JwtPayload; // Add the user property to the Request interface
+      user: tokenUser;
     }
   }
 }
@@ -17,6 +23,7 @@ export const authUser = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  const JWT_SECRET = process.env.JWT_SECRET as string;
   try {
     const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
 
@@ -33,8 +40,15 @@ export const authUser = async (
       return;
     }
 
-    const decode = jwt.verify(token, process.env.JWT_SECRET as string);
-    req.user = decode;
+    const decode = jwt.verify(token, JWT_SECRET);
+
+    if (typeof decode === "object" && decode !== null) {
+      req.user = decode as tokenUser;
+    } else {
+      res.status(401).send("Invalid Token");
+      return;
+    }
+
     next();
   } catch (error) {
     res.status(401).send({ error: "Unauthorized user" });

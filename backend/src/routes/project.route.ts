@@ -7,7 +7,7 @@ import { body } from "express-validator";
 const router = Router();
 
 router.post(
-  "/project",
+  "/create-project",
   authUser,
   body("name").isString().withMessage("Name is required"),
   projectControllers.projectController
@@ -25,6 +25,18 @@ router.put(
     .custom((users) => users.every((user: any) => typeof user === "string"))
     .withMessage("Each user must be a string"),
   projectControllers.addUserController
+);
+
+router.get(
+  "/get-all-user",
+  authUser,
+  projectControllers.findAllUsersController
+);
+
+router.get(
+  "/get-project/:projectId",
+  authUser,
+  projectControllers.getProjectDetails
 );
 
 export default router;
