@@ -44,7 +44,7 @@ export const addUser = async ({
   projectId,
   users,
   userId,
-}: addUser): Promise<string> => {
+}: addUser): Promise<any> => {
   try {
     const project = await Project.findById(projectId);
     if (!project) {
@@ -55,9 +55,14 @@ export const addUser = async ({
       throw new Error("User not authorized to add users to this project");
     }
 
-    project.users.push(...users);
-    await project.save();
-    return "User added successfully";
+    const newUsers = users.filter((user) => !project.users.includes(user));
+    if (newUsers.length > 0) {
+      project.users.push(...newUsers);
+      await project.save();
+    }
+
+    const updatedProject = await Project.findById(projectId).populate("users");
+    return updatedProject;
   } catch (error: unknown) {
     throw new Error(`Unable to add users: ${error}`);
   }

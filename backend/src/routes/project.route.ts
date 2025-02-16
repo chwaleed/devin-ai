@@ -15,7 +15,7 @@ router.post(
 
 router.get("/get-projects", authUser, projectControllers.getAllProjects);
 router.put(
-  "/add-user",
+  "/add-users",
   authUser,
   body("projectId").isString().withMessage("Project ID is required"),
   body("users")

@@ -1,5 +1,6 @@
 import { createContext, useReducer, ReactNode } from "react";
 import {
+  addUsers,
   crateProject,
   getAllProject,
   getProject,
@@ -41,6 +42,7 @@ interface ContextType {
     getAllProject?: () => void;
     getProject: (args_0: { projectId: string }) => void;
     crateProject: (args_0: { name: string }) => void;
+    addUsers: (args_0: { users: string[] }) => void;
   };
 }
 
@@ -52,6 +54,7 @@ export const context = createContext<ContextType>({
     getAllProject: () => {},
     getProject: () => {},
     crateProject: () => {},
+    addUsers: () => {},
   },
 });
 
@@ -67,13 +70,12 @@ export function ContextProvider({ children }: { children: ReactNode }) {
   };
   const [state, dispatch] = useReducer(globalDispatch, initialStates);
 
-  console.log(state);
-
   const methods = {
     verifyToken: verifyToken.bind({ state, dispatch }),
     getAllProject: getAllProject.bind({ state, dispatch }),
     getProject: getProject.bind({ state, dispatch }),
     crateProject: crateProject.bind({ state, dispatch }),
+    addUsers: addUsers.bind({ state, dispatch }),
   };
 
   return (

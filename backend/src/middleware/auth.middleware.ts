@@ -3,6 +3,7 @@ import { configDotenv } from "dotenv";
 import { NextFunction, Request, Response } from "express";
 import redisClient from "../services/redis.services";
 import { ObjectId } from "mongodb";
+import {} from "express";
 
 configDotenv();
 
@@ -25,6 +26,7 @@ export const authUser = async (
 ): Promise<void> => {
   const JWT_SECRET = process.env.JWT_SECRET as string;
   try {
+    console.log("Request is comming ");
     const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
 
     const isLogout = await redisClient.get(token);

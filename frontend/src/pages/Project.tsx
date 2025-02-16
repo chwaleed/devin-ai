@@ -1,19 +1,29 @@
-import { useContext, useEffect, useState } from "react";
-import axiosInstance from "../auth/axios.cofig";
+import { useContext, useEffect, useRef, useState } from "react";
 import Model from "./components/Model";
 import Loader from "./components/Loader";
 import { useLocation } from "react-router-dom";
 import { context } from "../context/context";
+import { initializeSocket, receiveMessage, sendMessage } from "../auth/socket";
+import PreviewMKD from "./components/PreviewMKD";
+import { getAllUsers } from "./components/method";
+
 function Project() {
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [users, setUsers] = useState<Array<user | null>>([]);
-  const [addedCollabs, setAddedCollabs] = useState<Array<user | null>>([]);
+  const [addedCollabs, setAddedCollabs] = useState<Array<string | null>>([]);
+  const [message, setMessage] = useState("");
   const { methods, state } = useContext(context);
   const location = useLocation();
   const { project } = location.state;
+  const messageBox = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<Array<message>>([]);
 
-  console.log("here are the users", project);
+  type message = {
+    sender?: string;
+    message: string;
+    stream?: boolean;
+  };
 
   type user = {
     email: string;
@@ -21,45 +31,68 @@ function Project() {
   };
 
   useEffect(() => {
+    initializeSocket(project._id);
+
+    receiveMessage("project-message", (data: message) => {
+      setMessages((prev) => [...prev, { message: data.message, sender: "AI" }]);
+    });
+
     if (methods && methods.getProject) {
       methods.getProject({ projectId: project?._id });
     }
   }, []);
 
-  const handleUserClick = (userId: string) => {
-    const existingUserIndex = addedCollabs.findIndex(
-      (collab) => collab?._id === userId
-    );
-    if (existingUserIndex !== -1) {
-      setAddedCollabs(addedCollabs.filter((collab) => collab?._id !== userId));
-      return;
+  useEffect(() => {
+    if (messageBox.current) {
+      messageBox.current.scrollTop = messageBox.current.scrollHeight;
     }
-    const user = users.find((user) => user?._id === userId);
-    if (user && !addedCollabs.some((collab) => collab?._id === userId)) {
-      setAddedCollabs([...addedCollabs, user]);
-    }
-  };
+  }, [messages]);
 
-  const getAllUsers = async () => {
-    try {
-      axiosInstance
-        .get("/api/get-all-user")
-        .then((res) => setUsers(res?.data?.data));
-    } catch (error) {
-      console.log("Error in getting users ", error);
+  const handleUserClick = (userId: string) => {
+    if (addedCollabs.includes(userId)) {
+      setAddedCollabs(addedCollabs.filter((collab) => collab !== userId));
+    } else {
+      setAddedCollabs([...addedCollabs, userId]);
     }
   };
 
   const getCallaborators = () => {
     setIsModalOpen(true);
-    getAllUsers();
+    getAllUsers({ setUsers });
   };
 
   const close = () => {
     setIsModalOpen(false);
   };
 
-  const onClick = () => {};
+  const onClick = () => {
+    if (addedCollabs.length === 0) return;
+    methods.addUsers({
+      users: addedCollabs.filter((userId): userId is string => userId !== null),
+    });
+    close();
+    setAddedCollabs([]);
+  };
+  console.log(state.user);
+
+  const send = () => {
+    if (message === "") return;
+    sendMessage("project-message", message);
+    setMessages((prev) => [
+      ...prev,
+      { sender: state.user?.email, message: message },
+    ]);
+    setMessage("");
+  };
+
+  const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      send();
+      return;
+    }
+    return;
+  };
+
   return (
     <main className="h-screen w-screen flex">
       <section className="left relative flex flex-col h-screen min-w-96 bg-slate-300">
@@ -77,41 +110,36 @@ function Project() {
         </header>
         <div className="conversation-area pt-14 pb-10 flex-grow flex flex-col h-full relative">
           <div
-            // ref={messageBox}
+            ref={messageBox}
             className="message-box p-1 flex-grow flex flex-col gap-1 overflow-auto max-h-full scrollbar-hide"
           >
-            {/* {messages.map((msg, index) => (
+            {messages.map((msg, index) => (
               <div
                 key={index}
-                className={`${
-                  msg.sender._id === "ai" ? "max-w-80" : "max-w-52"
-                } ${
-                  msg.sender._id == user._id.toString() && "ml-auto"
-                }  message flex flex-col p-2 bg-slate-50 w-fit rounded-md`}
+                className={`${msg.sender === "AI" ? "max-w-80" : "max-w-52"} ${
+                  msg.sender == state.user?.email && "ml-auto"
+                }  message flex flex-col p-2 bg-white w-fit rounded-md`}
               >
-                <small className="opacity-65 text-xs">{msg.sender.email}</small>
+                <small className="opacity-65 text-xs">{msg.sender}</small>
                 <div className="text-sm">
-                  {msg.sender._id === "ai" ? (
-                    WriteAiMessage(msg.message)
-                  ) : (
-                    <p>{msg.message}</p>
-                  )}
+                  <PreviewMKD content={msg.message} />
                 </div>
               </div>
-            ))} */}
+            ))}{" "}
           </div>
 
           <div className="inputField w-full flex absolute bottom-0">
             <input
-              // value={message}
-              // onChange={(e) => setMessage(e.target.value)}
+              value={message}
+              onKeyDown={handleEnter}
+              onChange={(e) => setMessage(e.target.value)}
               className="p-2 px-4 border-none outline-none flex-grow"
               type="text"
               placeholder="Enter message"
             />
-            {/* <button onClick={send} className="px-5 bg-slate-950 text-white">
+            <button onClick={send} className="px-5 bg-slate-950 text-white">
               <i className="ri-send-plane-fill"></i>
-            </button> */}
+            </button>
           </div>
         </div>
         <div
@@ -132,7 +160,6 @@ function Project() {
           <div className="users flex flex-col gap-2">
             {state?.activeProject &&
               state?.activeProject?.users?.map((user) => {
-                console.log("user here users ", user);
                 return (
                   <div className="user cursor-pointer hover:bg-slate-200 p-2 flex gap-2 items-center">
                     <div className="aspect-square rounded-full w-fit h-fit flex items-center justify-center p-5 text-white bg-slate-600">
@@ -288,7 +315,7 @@ function Project() {
                 <div
                   key={user?._id}
                   className={`user cursor-pointer hover:bg-slate-200 ${
-                    addedCollabs.some((collab) => collab?._id === user?._id)
+                    addedCollabs.some((collab) => collab === user?._id)
                       ? "bg-slate-200"
                       : ""
                   } p-2 flex gap-2 items-center`}
@@ -313,3 +340,26 @@ function Project() {
 }
 
 export default Project;
+
+{
+  /* {messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`${
+                  msg.sender._id === "ai" ? "max-w-80" : "max-w-52"
+                } ${
+                  msg.sender._id == user._id.toString() && "ml-auto"
+                }  message flex flex-col p-2 bg-slate-50 w-fit rounded-md`}
+              >
+                <small className="opacity-65 text-xs">{msg.sender.email}</small>
+                <div className="text-sm">
+                  {msg.sender._id === "ai" ? (
+                    WriteAiMessage(msg.message)
+                  ) : (
+                    <p>{msg.message}</p>
+                  )}
+                </div>
+              </div>
+              
+            ))} */
+}

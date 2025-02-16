@@ -59,3 +59,15 @@ export async function crateProject(this: thisType, { name }: { name: string }) {
     console.log(error);
   }
 }
+
+export async function addUsers(this: thisType, { users }: { users: string[] }) {
+  const { state, dispatch } = this;
+
+  try {
+    axiosInstance
+      .put("/api/add-users", { projectId: state.activeProject?._id, users })
+      .then((res) => dispatch({ payload: { activeProject: res.data.data } }));
+  } catch (error) {
+    console.log("Error in adding Collaborators", error);
+  }
+}

@@ -76,11 +76,16 @@ export const addUserController = async (
       res.status(400).json({ errors: errors.array() });
       return;
     }
-    const { projectId, users, userId }: addUser = req.body;
+    const { projectId, users }: addUser = req.body;
+    const { id: userId } = req.user;
+    console.log("here it comes ", userId);
+
     const reponse = await addUser({ projectId, users, userId });
-    res.status(200).send(response);
+    res
+      .status(200)
+      .json({ message: "Users added successfully", data: reponse });
   } catch (error) {
-    res.status(500).send("Internal Server Error");
+    res.status(500).send(`Internal Server Error ${error}`);
     return;
   }
 };

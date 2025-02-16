@@ -5,6 +5,7 @@ import * as userRouter from "./routes/user.route";
 import * as projectRouter from "./routes/project.route";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import { generateAiResponse } from "./services/gemnai";
 
 const app = express();
 
