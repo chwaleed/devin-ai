@@ -4,8 +4,9 @@ import Loader from "./components/Loader";
 import { useLocation } from "react-router-dom";
 import { context } from "../context/context";
 import { initializeSocket, receiveMessage, sendMessage } from "../auth/socket";
-import PreviewMKD from "./components/PreviewMKD";
 import { getAllUsers } from "./components/method";
+import RenderMessage from "./components/RenderMessage";
+import CodeEditor from "./components/CodeEditor";
 
 function Project() {
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
@@ -18,11 +19,11 @@ function Project() {
   const { project } = location.state;
   const messageBox = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Array<message>>([]);
+  const [fileTree, setFileTree] = useState({});
 
   type message = {
     sender?: string;
     message: string;
-    stream?: boolean;
   };
 
   type user = {
@@ -34,7 +35,14 @@ function Project() {
     initializeSocket(project._id);
 
     receiveMessage("project-message", (data: message) => {
-      setMessages((prev) => [...prev, { message: data.message, sender: "AI" }]);
+      console.log(message);
+      setMessages((prev) => [
+        ...prev,
+        { message: data.message, sender: data?.sender },
+      ]);
+      if (data?.sender === "AI") {
+        hanldeCodeFiles(data?.message);
+      }
     });
 
     if (methods && methods.getProject) {
@@ -73,7 +81,6 @@ function Project() {
     close();
     setAddedCollabs([]);
   };
-  console.log(state.user);
 
   const send = () => {
     if (message === "") return;
@@ -91,6 +98,18 @@ function Project() {
       return;
     }
     return;
+  };
+
+  const hanldeCodeFiles = (data: string) => {
+    let files;
+    try {
+      files = JSON.parse(data);
+      const filetree = files?.fileTree;
+      setFileTree(filetree);
+    } catch (error) {
+      files = null;
+      console.log("Error in converting to json ", error);
+    }
   };
 
   return (
@@ -113,19 +132,11 @@ function Project() {
             ref={messageBox}
             className="message-box p-1 flex-grow flex flex-col gap-1 overflow-auto max-h-full scrollbar-hide"
           >
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`${msg.sender === "AI" ? "max-w-80" : "max-w-52"} ${
-                  msg.sender == state.user?.email && "ml-auto"
-                }  message flex flex-col p-2 bg-white w-fit rounded-md`}
-              >
-                <small className="opacity-65 text-xs">{msg.sender}</small>
-                <div className="text-sm">
-                  <PreviewMKD content={msg.message} />
-                </div>
-              </div>
-            ))}{" "}
+            {messages.map((msg, index) => {
+              return (
+                <RenderMessage msg={msg} key={index} user={state.user?.email} />
+              );
+            })}
           </div>
 
           <div className="inputField w-full flex absolute bottom-0">
@@ -172,6 +183,8 @@ function Project() {
           </div>
         </div>
       </section>
+
+      {fileTree && <CodeEditor fileTree={fileTree} setFileTree={setFileTree} />}
 
       {/* <section className="right  bg-red-50 flex-grow h-full flex">
         <div className="explorer h-full max-w-64 min-w-52 bg-slate-200">

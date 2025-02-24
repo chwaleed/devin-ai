@@ -8,6 +8,8 @@ const redisClient = new Redis({
   password: process.env.REDIS_PASSWORD as string,
 });
 
+console.log(process.env.REDIS_PASSWORD as string);
+
 redisClient.on("connect", () => {
   console.log("Connected to Redis");
 });
